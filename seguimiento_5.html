@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proyecto Estrategia — Seguimiento</title>
+<style>
+  :root{
+    --bg: #0B0F14;
+    --panel: #12181F;
+    --panel-2: #171F28;
+    --border: #232C36;
+    --text: #E8EDF2;
+    --text-dim: #8B98A5;
+    --text-faint: #5B6672;
+    --gold: #C99A4A;
+    --gold-dim: #8A6E3C;
+    --green: #3FB971;
+    --green-dim: #1F4A32;
+    --red: #E05C5C;
+    --red-dim: #4A2323;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  .wrap{ max-width:920px; margin:0 auto; padding:20px 16px 80px; }
+
+  header.top{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:20px;
+    flex-wrap:wrap; gap:8px;
+  }
+  header.top .brand{ display:flex; flex-direction:column; gap:2px; }
+  header.top h1{
+    font-size:15px; letter-spacing:.14em; text-transform:uppercase; margin:0;
+    color:var(--gold); font-weight:600;
+  }
+  header.top .sub{ font-size:12px; color:var(--text-faint); font-family:var(--mono); }
+  header.top .clock{ font-family:var(--mono); font-size:12px; color:var(--text-dim); text-align:right; }
+
+  .sheet-banner{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    background:var(--panel); border:1px solid var(--gold-dim); border-radius:8px;
+    padding:12px 16px; margin-bottom:20px; flex-wrap:wrap;
+  }
+  .sheet-banner-text{ font-size:12px; color:var(--text-dim); line-height:1.5; max-width:520px; }
+  .sheet-banner-text b{ color:var(--text); }
+  .sheet-banner .btn{ white-space:nowrap; flex-shrink:0; }
+
+  .ticker-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:8px;
+    padding:14px 16px; margin-bottom:8px;
+  }
+  .ticker-card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+  .ticker-card-name{ display:flex; align-items:baseline; gap:8px; }
+  .ticker-card-name .tk{ font-family:var(--mono); font-size:15px; font-weight:700; color:var(--text); }
+  .ticker-card-name .nm{ font-size:11.5px; color:var(--text-faint); }
+  .ticker-card .sector-tag{
+    font-family:var(--mono); font-size:9px; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--text-faint); background:var(--panel-2); padding:2px 6px; border-radius:3px;
+  }
+  .estr-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .estr-chip{
+    font-size:11px; padding:4px 9px; border-radius:12px; border:1px solid var(--border);
+    color:var(--text-dim); white-space:nowrap;
+  }
+  .estr-chip b{ color:var(--gold); font-family:var(--mono); font-weight:700; margin-right:4px; }
+  .estr-chip.top{ border-color:var(--gold-dim); }
+  .hoy-error{
+    padding:14px 16px; border:1px solid var(--red-dim); border-radius:8px; background:var(--panel);
+    font-size:12.5px; color:#D98282; line-height:1.6;
+  }
+  .hoy-error a{ color:var(--gold); }
+  .hoy-fresh{ font-family:var(--mono); font-size:10.5px; color:var(--text-faint); }
+
+  nav.tabs{ display:flex; gap:2px; margin-bottom:24px; border-bottom:1px solid var(--border); }
+  nav.tabs button{
+    background:none; border:none; color:var(--text-dim); font-family:var(--sans);
+    font-size:13px; font-weight:600; padding:10px 16px; cursor:pointer;
+    border-bottom:2px solid transparent; transition:color .15s, border-color .15s;
+  }
+  nav.tabs button:hover{ color:var(--text); }
+  nav.tabs button.active{ color:var(--gold); border-bottom-color:var(--gold); }
+  nav.tabs button .count{
+    font-family:var(--mono); font-size:10px; color:var(--text-faint); margin-left:5px;
+  }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  .lead{ font-size:13px; color:var(--text-dim); line-height:1.6; margin:0 0 20px; max-width:640px; }
+  .lead strong{ color:var(--text); }
+
+  .section-head{
+    display:flex; align-items:center; gap:10px; margin:28px 0 12px;
+  }
+  .section-head .dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .section-head .dot.gold{ background:var(--gold); }
+  .section-head .dot.dim{ background:var(--text-faint); }
+  .section-head h2{ font-size:12px; letter-spacing:.1em; text-transform:uppercase; margin:0; color:var(--text-dim); font-weight:700; }
+  .section-head .n{ font-family:var(--mono); font-size:11px; color:var(--text-faint); }
+  .section-head::after{ content:''; flex:1; height:1px; background:var(--border); }
+
+  /* ---- strategy cards ---- */
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:8px;
+    padding:16px 18px; margin-bottom:10px;
+  }
+  .card.dim{ opacity:.68; }
+  .card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; }
+  .card-name{ font-size:14px; font-weight:600; color:var(--text); }
+  .card-tag{
+    display:inline-block; font-family:var(--mono); font-size:9px; letter-spacing:.06em;
+    padding:2px 6px; border-radius:3px; margin-top:4px; text-transform:uppercase;
+  }
+  .card-tag.indicador{ background:#1D2733; color:#7FA8D6; }
+  .card-tag.dias{ background:#2A2419; color:#D6B87F; }
+  .card-tag.calendario{ background:#2A1F2E; color:#C990D6; }
+
+  .badge{ font-family:var(--mono); font-size:10px; padding:3px 8px; border-radius:3px; font-weight:700; letter-spacing:.03em; white-space:nowrap; }
+  .badge.si{ background:var(--green-dim); color:var(--green); }
+  .badge.no{ background:var(--red-dim); color:#D98282; }
+
+  .score-row{ display:flex; align-items:center; gap:8px; margin:10px 0; }
+  .score-bars{ display:flex; gap:2px; }
+  .score-bars i{ width:6px; height:14px; border-radius:1px; background:var(--border); display:block; }
+  .score-bars i.on{ background:var(--gold); }
+  .score-num{ font-family:var(--mono); font-size:11px; color:var(--text-dim); }
+
+  .rule-line{ font-size:12px; color:var(--text-dim); line-height:1.7; }
+  .rule-line b{ color:var(--text-faint); font-weight:600; }
+  .stat-line{
+    font-family:var(--mono); font-size:10.5px; color:var(--text-faint); margin-top:10px;
+    padding-top:10px; border-top:1px solid var(--border);
+  }
+
+  .card-actions{ display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  button.btn{
+    font-family:var(--sans); font-size:12px; font-weight:600; padding:7px 13px;
+    border-radius:6px; border:1px solid var(--border); background:var(--panel-2);
+    color:var(--text); cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  button.btn:hover{ border-color:var(--gold-dim); }
+  button.btn.primary{ background:var(--gold); border-color:var(--gold); color:#1A1207; }
+  button.btn.primary:hover{ background:#DBA958; }
+  button.btn.ghost-sim{ background:none; border-color:#5A4A2E; color:var(--gold); }
+  button.btn.danger{ background:none; border-color:var(--red-dim); color:#D98282; }
+  button.btn.small{ font-size:11px; padding:5px 10px; }
+  button.btn:disabled{ opacity:.4; cursor:default; }
+
+  /* ---- positions ---- */
+  .subtabs{ display:flex; gap:16px; margin-bottom:16px; }
+  .subtabs button{
+    background:none; border:none; color:var(--text-faint); font-size:12px; font-weight:600;
+    cursor:pointer; padding:4px 0; border-bottom:1px solid transparent;
+  }
+  .subtabs button.active{ color:var(--text); border-bottom-color:var(--text-dim); }
+
+  .empty{
+    text-align:center; padding:48px 20px; color:var(--text-faint); font-size:13px;
+    border:1px dashed var(--border); border-radius:8px; line-height:1.7;
+  }
+
+  .pos-card{ background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px 18px; margin-bottom:12px; position:relative; }
+  .pos-card.sim{ border-color:#4A3A1E; }
+  .pos-card.sim::before{
+    content:'SIMULACIÓN'; position:absolute; top:0; right:0; font-family:var(--mono);
+    font-size:9px; letter-spacing:.08em; background:var(--gold); color:#1A1207;
+    padding:3px 8px; border-radius:0 7px 0 7px; font-weight:700;
+  }
+  .pos-top{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .pos-ticker{ font-family:var(--mono); font-size:16px; font-weight:700; color:var(--text); }
+  .pos-strat{ font-size:12px; color:var(--text-dim); }
+  .pos-days{ font-family:var(--mono); font-size:11px; color:var(--text-faint); }
+  .pos-grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;
+    margin:12px 0; padding:12px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+  }
+  .pos-field{ display:flex; flex-direction:column; gap:2px; }
+  .pos-field label{ font-size:9px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); }
+  .pos-field span{ font-family:var(--mono); font-size:13px; color:var(--text); }
+
+  .exit-rule{ font-size:11.5px; color:var(--text-dim); margin:10px 0; line-height:1.6; }
+  .exit-rule b{ color:var(--text-faint); }
+
+  .paste-box{ margin-top:12px; }
+  .paste-box textarea{
+    width:100%; min-height:88px; background:var(--panel-2); border:1px solid var(--border);
+    color:var(--text); font-family:var(--mono); font-size:11.5px; border-radius:6px;
+    padding:10px; resize:vertical;
+  }
+  .paste-hint{ font-size:10.5px; color:var(--text-faint); margin:6px 0 10px; line-height:1.5; }
+
+  .signal-banner{
+    display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:6px;
+    font-size:12.5px; font-weight:700; margin-top:10px;
+  }
+  .signal-banner.hold{ background:var(--green-dim); color:var(--green); }
+  .signal-banner.sell{ background:var(--red-dim); color:#F09090; }
+  .signal-banner.info{ background:#241E2E; color:#C6A6E0; }
+  .signal-banner .icon{ font-size:16px; }
+
+  /* ---- forms / modal ---- */
+  .modal-bg{
+    display:none; position:fixed; inset:0; background:rgba(6,8,11,.72); z-index:50;
+    align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto;
+  }
+  .modal-bg.open{ display:flex; }
+  .modal{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    width:100%; max-width:420px; padding:22px;
+  }
+  .modal h3{ font-size:14px; margin:0 0 4px; color:var(--text); }
+  .modal .modal-sub{ font-size:12px; color:var(--text-dim); margin-bottom:16px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:11px; color:var(--text-faint); margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em; }
+  .field input, .field select{
+    width:100%; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    font-family:var(--sans); font-size:13px; padding:9px 10px; border-radius:6px;
+  }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--gold-dim); }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+  .modal-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:18px; }
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2); border:1px solid var(--gold-dim); color:var(--text);
+    padding:11px 18px; border-radius:8px; font-size:12.5px; opacity:0; transition:all .25s;
+    pointer-events:none; z-index:100; max-width:90vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .pnl-pos{ color:var(--green); } .pnl-neg{ color:var(--red); }
+
+  table.hist{ width:100%; border-collapse:collapse; font-size:12px; }
+  table.hist th{
+    text-align:left; font-size:9.5px; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--text-faint); padding:8px 10px; border-bottom:1px solid var(--border);
+  }
+  table.hist td{ padding:9px 10px; border-bottom:1px solid var(--border); font-family:var(--mono); color:var(--text-dim); }
+  table.hist tr:hover td{ background:var(--panel-2); }
+  table.hist .t-ticker{ color:var(--text); font-weight:600; font-family:var(--sans); }
+
+  footer.foot{ margin-top:40px; padding-top:16px; border-top:1px solid var(--border); font-size:10.5px; color:var(--text-faint); line-height:1.7; }
+
+  @media (max-width:520px){
+    .pos-grid{ grid-template-columns:repeat(2,1fr); }
+    header.top{ flex-direction:column; align-items:flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <h1>Proyecto Estrategia</h1>
+      <div class="sub">Seguimiento de operaciones · CEDEAR / activo real</div>
+    </div>
+    <div class="clock" id="clock">—</div>
+  </header>
+
+  <div class="sheet-banner">
+    <div class="sheet-banner-text">
+      <b>Antes de operar:</b> mirá qué está activo hoy, en qué papel.
+      Se actualiza sola una vez por día (no al hacer clic) — mirá la fecha de cálculo abajo.
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn small" onclick="cargarSenalesHoySE()">↻ Actualizar</button>
+      <a class="btn primary small" href="https://docs.google.com/spreadsheets/d/1xKUNfB6u5eou8qRY_siL9vmoiNIbk0D3niZ3G1-FZ3k/edit"
+         target="_blank" rel="noopener">Abrir planilla →</a>
+    </div>
+  </div>
+
+  <div id="hoy-wrap">
+    <div class="section-head"><span class="dot gold"></span><h2>Señales activas hoy</h2><span class="n" id="hoy-meta"></span></div>
+    <div id="hoy-contenido"><div class="empty">Cargando…</div></div>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-view="senales">Señales</button>
+    <button class="tab-btn" data-view="reales">Reales <span class="count" id="cnt-reales"></span></button>
+    <button class="tab-btn" data-view="sim">Simulación <span class="count" id="cnt-sim"></span></button>
+  </nav>
+
+  <!-- ============ SEÑALES ============ -->
+  <section class="view active" id="view-senales">
+    <p class="lead">
+      Las 15 estrategias verificadas contra un control de entrada al azar, misma duración de operación
+      (mismo motor que <b>estrategias2.gs</b>, 30 ETFs, marzo 2010–agosto 2026). El puntaje de 1 a 10 combina
+      significancia estadística (z), consistencia entre tickers (gana al control) y si le gana a comprar-y-sostener.
+      Un puntaje bajo no significa que la estrategia nunca funcione — significa que la evidencia contra el azar es débil.
+    </p>
+
+    <div class="section-head"><span class="dot gold"></span><h2>Superan al azar</h2><span class="n" id="n-superan"></span></div>
+    <div id="cards-superan"></div>
+
+    <div class="section-head"><span class="dot dim"></span><h2>No superan al azar</h2><span class="n" id="n-no-superan"></span></div>
+    <div id="cards-no-superan"></div>
+  </section>
+
+  <!-- ============ REALES ============ -->
+  <section class="view" id="view-reales">
+    <div class="subtabs">
+      <button class="sub-btn active" data-sub="reales-abiertas">Abiertas</button>
+      <button class="sub-btn" data-sub="reales-historial">Historial</button>
+    </div>
+    <div class="sub-view active" id="reales-abiertas">
+      <div id="list-reales-abiertas"></div>
+    </div>
+    <div class="sub-view" id="reales-historial" style="display:none">
+      <div id="list-reales-historial"></div>
+    </div>
+  </section>
+
+  <!-- ============ SIMULACIÓN ============ -->
+  <section class="view" id="view-sim">
+    <div class="subtabs">
+      <button class="sub-btn active" data-sub="sim-abiertas">Abiertas</button>
+      <button class="sub-btn" data-sub="sim-historial">Historial</button>
+    </div>
+    <div class="sub-view active" id="sim-abiertas">
+      <div id="list-sim-abiertas"></div>
+    </div>
+    <div class="sub-view" id="sim-historial" style="display:none">
+      <div id="list-sim-historial"></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    Guardado automático en la nube de Claude: abrí este mismo archivo desde cualquier computadora y vas a ver
+    las mismas operaciones. Mientras el archivo esté cerrado no hay chequeo activo — al volver a abrirlo,
+    pegá los precios recientes de cada posición para ver si la señal de salida está activa.
+    No es asesoramiento financiero.
+  </footer>
+</div>
+
+<!-- ============ MODAL: nueva entrada ============ -->
+<div class="modal-bg" id="modal-entrada">
+  <div class="modal">
+    <h3 id="modal-titulo">Registrar entrada</h3>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="field" id="field-estrategia-wrap">
+      <label>Estrategia</label>
+      <select id="in-estrategia"></select>
+    </div>
+    <div class="field">
+      <label>Papel (ticker)</label>
+      <input type="text" id="in-ticker" placeholder="Ej: AAPL, XLE, SPY" autocomplete="off">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Monto invertido</label>
+        <input type="number" id="in-monto" placeholder="0" min="0" step="any">
+      </div>
+      <div class="field">
+        <label>Moneda</label>
+        <select id="in-moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Comisión pagada</label>
+      <input type="number" id="in-comision" placeholder="0" min="0" step="any">
+    </div>
+    <div class="field">
+      <label>Fecha de entrada</label>
+      <input type="date" id="in-fecha">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="cerrarModal('modal-entrada')">Cancelar</button>
+      <button class="btn primary" id="btn-confirmar-entrada">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: cerrar operación ============ -->
+<div class="modal-bg" id="modal-salida">
+  <div class="modal">
+    <h3>Cerrar operación</h3>
+    <div class="modal-sub" id="modal-salida-sub"></div>
+    <div class="field">
+      <label>Monto de salida (bruto)</label>
+      <input type="number" id="out-monto" placeholder="0" min="0" step="any">
+    </div>
+    <div class="field">
+      <label>Comisión pagada al salir</label>
+      <input type="number" id="out-comision" placeholder="0" min="0" step="any">
+    </div>
+    <div class="field">
+      <label>Fecha de salida</label>
+      <input type="date" id="out-fecha">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="cerrarModal('modal-salida')">Cancelar</button>
+      <button class="btn primary" id="btn-confirmar-salida">Confirmar cierre</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ======================================================================
+   DATOS: las 15 estrategias, resultado final del backtest (30 ETFs,
+   mar 2010 - ago 2026, control apareado, mismo motor que estrategias2.gs)
+   ====================================================================== */
+const ESTRATEGIAS = [
+  { id:'ibs10', nombre:'IBS<0,10 sobre SMA200', tipo:'indicador',
+    entrada:'Cierre > SMA200 y IBS < 0,10', salida:'IBS > 0,75',
+    salidaTipo:'ibs', umbral:0.75, cmp:'>',
+    z:3.96, supera:true, control:'24/29', bh:'10/29', score:9 },
+  { id:'r3', nombre:'R3 Connors', tipo:'indicador',
+    entrada:'Cierre > SMA200, RSI(2) baja 3 ruedas seguidas desde <60, y RSI(2) < 10', salida:'RSI(2) > 70',
+    salidaTipo:'rsi2', umbral:70, cmp:'>',
+    z:3.45, supera:true, control:'23/29', bh:'6/29', score:8 },
+  { id:'willr', nombre:'Williams %R(10) sobre SMA200', tipo:'indicador',
+    entrada:'Cierre > SMA200 y Williams %R(10) < -90', salida:'Williams %R(10) > -30',
+    salidaTipo:'willr', umbral:-30, cmp:'>',
+    z:2.97, supera:true, control:'21/29', bh:'10/29', score:8 },
+  { id:'turnoMes', nombre:'Turn of the month', tipo:'dias',
+    entrada:'5º día hábil antes de fin de mes', salida:'7 ruedas después',
+    salidaTipo:'dias', umbral:7,
+    z:2.85, supera:true, control:'21/29', bh:'7/29', score:6 },
+  { id:'rsi2_10', nombre:'RSI(2)<10 sobre SMA200', tipo:'indicador',
+    entrada:'Cierre > SMA200 y RSI(2) < 10', salida:'RSI(2) > 65',
+    salidaTipo:'rsi2', umbral:65, cmp:'>',
+    z:2.59, supera:true, control:'18/29', bh:'8/29', score:6 },
+  { id:'baja4', nombre:'4 cierres bajistas seguidos', tipo:'indicador',
+    entrada:'4 cierres consecutivos a la baja', salida:'Primer cierre por encima del cierre anterior',
+    salidaTipo:'alzaPrimera',
+    z:2.49, supera:true, control:'19/29', bh:'9/29', score:6 },
+
+  { id:'ibs25', nombre:'IBS<0,25 sobre SMA200', tipo:'indicador',
+    entrada:'Cierre > SMA200 y IBS < 0,25', salida:'IBS > 0,75',
+    salidaTipo:'ibs', umbral:0.75, cmp:'>',
+    z:1.84, supera:false, control:'21/29', bh:'10/29', score:4 },
+  { id:'semanaBaja', nombre:'Semana bajista', tipo:'dias',
+    entrada:'Viernes con cierre por debajo del cierre de hace 5 ruedas', salida:'5 ruedas después',
+    salidaTipo:'dias', umbral:5,
+    z:1.73, supera:false, control:'20/29', bh:'10/29', score:4 },
+  { id:'d7', nombre:'Double Seven (Connors)', tipo:'indicador',
+    entrada:'Cierre > SMA200 y cierre en el mínimo de 7 ruedas', salida:'Cierre en el máximo de 7 ruedas',
+    salidaTipo:'max7',
+    z:1.62, supera:false, control:'17/29', bh:'9/29', score:4 },
+  { id:'rsi2_5', nombre:'RSI(2)<5 sobre SMA200 (Connors)', tipo:'indicador',
+    entrada:'Cierre > SMA200 y RSI(2) < 5', salida:'RSI(2) > 65',
+    salidaTipo:'rsi2', umbral:65, cmp:'>',
+    z:1.49, supera:false, control:'19/29', bh:'7/29', score:3 },
+  { id:'santa', nombre:'Santa Claus Rally', tipo:'dias',
+    entrada:'5º día hábil antes de fin de diciembre', salida:'7 ruedas después',
+    salidaTipo:'dias', umbral:7,
+    z:1.30, supera:false, control:'17/29', bh:'8/29', score:3 },
+  { id:'baja3', nombre:'3 cierres bajistas seguidos', tipo:'dias',
+    entrada:'3 cierres consecutivos a la baja', salida:'1 rueda después',
+    salidaTipo:'dias', umbral:1,
+    z:1.00, supera:false, control:'16/29', bh:'5/29', score:2 },
+  { id:'seisMeses', nombre:'Mejores seis meses (nov-abr)', tipo:'calendario',
+    entrada:'Primer día hábil de noviembre', salida:'Primer día hábil de abril',
+    salidaTipo:'calendario', textoManual:'Vender el primer día hábil de abril. No superó el test contra el azar pese al multiplicador alto: es beta de estar comprado casi la mitad del año, no señal.',
+    z:0.95, supera:false, control:'15/29', bh:'10/29', score:2 },
+  { id:'hl3', nombre:'3 Day High/Low (Connors)', tipo:'indicador',
+    entrada:'Cierre > SMA200, cierre < SMA5, y máximos/mínimos bajando 2 ruedas', salida:'Cierre por encima del máximo de la rueda anterior',
+    salidaTipo:'maxAyer',
+    z:0.57, supera:false, control:'15/29', bh:'8/29', score:2 },
+  { id:'primerDia', nombre:'Primer día hábil del mes', tipo:'dias',
+    entrada:'Primer día hábil del mes', salida:'1 rueda después',
+    salidaTipo:'dias', umbral:1,
+    z:-0.52, supera:false, control:'14/29', bh:'5/29', score:1 },
+];
+const ESTRATEGIAS_MAP = Object.fromEntries(ESTRATEGIAS.map(e=>[e.id,e]));
+
+/* ======================================================================
+   INDICADORES — mismas fórmulas que estrategias2.gs (verificadas contra
+   el motor de Apps Script antes de portarlas acá).
+   Las filas pegadas van de más vieja a más nueva: "fecha,alto,bajo,cierre"
+   ====================================================================== */
+function parseOHLC(texto){
+  const filas = texto.trim().split('\n').map(l=>l.trim()).filter(Boolean);
+  const out = [];
+  for(const f of filas){
+    const p = f.split(',').map(x=>x.trim());
+    if(p.length<4) continue;
+    const h=parseFloat(p[1]), l=parseFloat(p[2]), c=parseFloat(p[3]);
+    if(isNaN(h)||isNaN(l)||isNaN(c)) continue;
+    out.push({fecha:p[0], h, l, c});
+  }
+  return out;
+}
+function rsiWilder(closes, p){
+  const out = closes.map(()=>null);
+  if(closes.length<=p) return out;
+  let g=0, ls=0;
+  for(let i=1;i<=p;i++){ const ch=closes[i]-closes[i-1]; if(ch>0) g+=ch; else ls-=ch; }
+  g/=p; ls/=p;
+  out[p] = ls===0 ? 100 : 100-100/(1+g/ls);
+  for(let i=p+1;i<closes.length;i++){
+    const ch=closes[i]-closes[i-1], up=ch>0?ch:0, dn=ch<0?-ch:0;
+    g=(g*(p-1)+up)/p; ls=(ls*(p-1)+dn)/p;
+    out[i] = ls===0 ? 100 : 100-100/(1+g/ls);
+  }
+  return out;
+}
+function calcularIndicador(salidaTipo, filas, fechaEntrada){
+  if(filas.length===0) return {error:'Pegá al menos algunas ruedas para calcular.'};
+  const closes = filas.map(f=>f.c);
+  if(salidaTipo==='rsi2'){
+    if(closes.length<8) return {error:'RSI(2) necesita al menos 8 ruedas pegadas para estabilizar.'};
+    const r = rsiWilder(closes,2);
+    const v = r[r.length-1];
+    return {valor:v, label:'RSI(2) actual: '+v.toFixed(1)};
+  }
+  if(salidaTipo==='ibs'){
+    const u = filas[filas.length-1];
+    const rng = u.h-u.l;
+    const v = rng>0 ? (u.c-u.l)/rng : 0.5;
+    return {valor:v, label:'IBS de hoy: '+v.toFixed(3)};
+  }
+  if(salidaTipo==='willr'){
+    if(filas.length<10) return {error:'Williams %R(10) necesita al menos 10 ruedas pegadas.'};
+    const ult10 = filas.slice(-10);
+    const hh = Math.max(...ult10.map(f=>f.h));
+    const ll = Math.min(...ult10.map(f=>f.l));
+    const c = filas[filas.length-1].c;
+    const v = hh===ll ? null : -100*(hh-c)/(hh-ll);
+    if(v===null) return {error:'Rango sin variación, no se puede calcular.'};
+    return {valor:v, label:'Williams %R(10) actual: '+v.toFixed(1)};
+  }
+  if(salidaTipo==='max7'){
+    if(filas.length<7) return {error:'Necesita al menos 7 ruedas pegadas.'};
+    const ult7 = closes.slice(-7);
+    const max7 = Math.max(...ult7);
+    const c = closes[closes.length-1];
+    return {valor:c, umbralEfectivo:max7, label:'Cierre: '+c.toFixed(2)+' · Máximo de 7 ruedas: '+max7.toFixed(2)};
+  }
+  if(salidaTipo==='maxAyer'){
+    if(filas.length<2) return {error:'Necesita al menos 2 ruedas pegadas.'};
+    const hoy = filas[filas.length-1], ayer = filas[filas.length-2];
+    return {valor:hoy.c, umbralEfectivo:ayer.h, label:'Cierre hoy: '+hoy.c.toFixed(2)+' · Máximo de ayer: '+ayer.h.toFixed(2)};
+  }
+  if(salidaTipo==='alzaPrimera'){
+    if(filas.length<2) return {error:'Necesita al menos 2 ruedas pegadas.'};
+    const hoy = filas[filas.length-1], ayer = filas[filas.length-2];
+    return {valor:hoy.c, umbralEfectivo:ayer.c, label:'Cierre hoy: '+hoy.c.toFixed(2)+' · Cierre anterior: '+ayer.c.toFixed(2)};
+  }
+  if(salidaTipo==='dias'){
+    const ruedasDesde = fechaEntrada ? filas.filter(f=>f.fecha > fechaEntrada).length : filas.length;
+    return {valor:ruedasDesde, label:'Ruedas transcurridas desde la entrada (según lo pegado): '+ruedasDesde};
+  }
+  return {error:'Tipo de salida no reconocido.'};
+}
+function evaluarSalida(estr, filas, fechaEntrada){
+  if(estr.salidaTipo==='calendario'){
+    return {tipo:'info', texto:estr.textoManual || estr.salida};
+  }
+  const r = calcularIndicador(estr.salidaTipo, filas, fechaEntrada);
+  if(r.error) return {tipo:'error', texto:r.error};
+
+  let disparo = false;
+  if(estr.salidaTipo==='rsi2') disparo = r.valor > estr.umbral;
+  else if(estr.salidaTipo==='ibs') disparo = r.valor > estr.umbral;
+  else if(estr.salidaTipo==='willr') disparo = r.valor > estr.umbral;
+  else if(estr.salidaTipo==='max7') disparo = r.valor >= r.umbralEfectivo;
+  else if(estr.salidaTipo==='maxAyer') disparo = r.valor > r.umbralEfectivo;
+  else if(estr.salidaTipo==='alzaPrimera') disparo = r.valor > r.umbralEfectivo;
+  else if(estr.salidaTipo==='dias') disparo = r.valor >= estr.umbral;
+
+  return { tipo: disparo?'sell':'hold', texto:r.label, disparo };
+}
+
+/* ======================================================================
+   SEÑALES DE HOY — leídas de la planilla CEDEAR publicada como CSV.
+   Fuente: hoja "SeñalesEstrategiaHoy", actualizada por el trigger diario
+   de senalesEstrategiaHoy.gs. No se recalcula al hacer clic: solo se lee
+   lo que la planilla ya tiene calculado.
+
+   El fetch directo a Google a veces lo bloquea CORS en el navegador y a
+   veces no, según el contexto del artifact — no es predecible desde acá.
+   Por eso, igual que cedear-scanner-real.html (que ya resuelve esto en
+   producción), se prueban 5 vías en orden y se usa la primera que
+   responda. No es una capa decorativa: sin esto, la lectura fallaba.
+   ====================================================================== */
+const CSV_URL_HOY = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtu0kxPNrZXtQNHyaxo0uCZUTEaVI2mwd-AzV-EbZ6OWeD6WxpxFEh5gzL-qfDeKTcWKaXPFRfvthf/pub?gid=1617884433&single=true&output=csv';
+
+const FUENTES_SE = [
+  {n:'directo', f:u=>u},
+  {n:'corsproxy.io', f:u=>'https://corsproxy.io/?'+encodeURIComponent(u)},
+  {n:'allorigins', f:u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u)},
+  {n:'codetabs', f:u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)},
+  {n:'thingproxy', f:u=>'https://thingproxy.freeboard.io/fetch/'+u}
+];
+
+async function fetchConTimeoutSE(url, ms){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), ms);
+  try { return await fetch(url, {signal: ctrl.signal, cache:'no-store'}); }
+  finally { clearTimeout(t); }
+}
+
+async function traerSE(url, {minBytes=50, timeout=8000}={}){
+  let ultimoError = 'sin intentos';
+  for (const fuente of FUENTES_SE) {
+    try {
+      const r = await fetchConTimeoutSE(fuente.f(url), timeout);
+      if (!r.ok) { ultimoError = 'HTTP '+r.status+' ('+fuente.n+')'; continue; }
+      const t = await r.text();
+      if (!t || t.trim().length < minBytes) { ultimoError = 'respuesta vacía ('+fuente.n+')'; continue; }
+      if (/<!DOCTYPE|<html/i.test(t.slice(0,200))) { ultimoError = 'HTML en vez de CSV ('+fuente.n+')'; continue; }
+      return { texto:t, fuente:fuente.n };
+    } catch(e) {
+      ultimoError = (e.name==='AbortError' ? 'timeout' : (e.message||'error')) + ' ('+fuente.n+')';
+    }
+  }
+  throw new Error(ultimoError);
+}
+
+function parseCSVSE(texto){
+  const filas = [];
+  let fila = [], campo = '', enComillas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (enComillas) {
+      if (c === '"') { if (texto[i+1] === '"') { campo += '"'; i++; } else enComillas = false; }
+      else campo += c;
+    } else {
+      if (c === '"') enComillas = true;
+      else if (c === ',') { fila.push(campo); campo = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && texto[i+1] === '\n') i++;
+        fila.push(campo); campo = '';
+        if (fila.length > 1 || fila[0] !== '') filas.push(fila);
+        fila = [];
+      } else campo += c;
+    }
+  }
+  if (campo !== '' || fila.length) { fila.push(campo); filas.push(fila); }
+  return filas;
+}
+
+async function cargarSenalesHoySE(){
+  const cont = document.getElementById('hoy-contenido');
+  const meta = document.getElementById('hoy-meta');
+  cont.innerHTML = '<div class="empty">Cargando…</div>';
+  try{
+    const {texto, fuente} = await traerSE(CSV_URL_HOY);
+    const filas = parseCSVSE(texto);
+    if(filas.length < 2){ cont.innerHTML = '<div class="empty">La planilla no tiene señales activas hoy.</div>'; meta.textContent=''; return; }
+
+    const hd = filas[0];
+    const iTicker=hd.indexOf('Ticker'), iNombre=hd.indexOf('Nombre'), iSector=hd.indexOf('Sector'),
+          iEstr=hd.indexOf('Estrategia'), iPunt=hd.indexOf('Puntaje'), iDet=hd.indexOf('Detalle'),
+          iFCalc=hd.indexOf('Fecha calculo');
+
+    const porTicker = {};
+    let fechaMasReciente = '';
+    for(let i=1;i<filas.length;i++){
+      const f = filas[i];
+      if(f.length < hd.length) continue;
+      const tk = f[iTicker];
+      if(!tk) continue;
+      if(!porTicker[tk]) porTicker[tk] = { ticker:tk, nombre:f[iNombre]||tk, sector:f[iSector]||'Sin clasificar', estrategias:[] };
+      porTicker[tk].estrategias.push({ nombre:f[iEstr], puntaje:parseInt(f[iPunt],10)||0, detalle:f[iDet] });
+      if(f[iFCalc] > fechaMasReciente) fechaMasReciente = f[iFCalc];
+    }
+
+    const grupos = Object.values(porTicker);
+    grupos.forEach(g => g.estrategias.sort((a,b)=>b.puntaje-a.puntaje));
+    grupos.sort((a,b)=> b.estrategias[0].puntaje - a.estrategias[0].puntaje);
+
+    meta.textContent = grupos.length + ' papeles · actualizado ' + fechaMasReciente + ' · vía ' + fuente;
+    cont.innerHTML = grupos.map(tarjetaTickerHoy).join('');
+  }catch(e){
+    console.error(e);
+    cont.innerHTML = `<div class="hoy-error">
+      No pude leer la planilla desde ninguna de las 5 vías (última: ${e.message}).
+      Mirala directo: <a href="https://docs.google.com/spreadsheets/d/1xKUNfB6u5eou8qRY_siL9vmoiNIbk0D3niZ3G1-FZ3k/edit" target="_blank" rel="noopener">abrir planilla →</a>
+    </div>`;
+    meta.textContent = '';
+  }
+}
+
+function tarjetaTickerHoy(g){
+  const top = g.estrategias[0];
+  return `
+  <div class="ticker-card">
+    <div class="ticker-card-top">
+      <div class="ticker-card-name">
+        <span class="tk">${g.ticker}</span>
+        <span class="nm">${g.nombre !== g.ticker ? g.nombre : ''}</span>
+        <span class="sector-tag">${g.sector}</span>
+      </div>
+      <button class="btn primary small" onclick="abrirModalEntradaDesdeHoy('${g.ticker}','${top.nombre.replace(/'/g,"\\'")}')">+ Entrada real</button>
+    </div>
+    <div class="estr-chips">
+      ${g.estrategias.map(e => `<span class="estr-chip ${e.puntaje>=e_topPuntaje(g)?'top':''}"><b>${e.puntaje}</b>${e.nombre}</span>`).join('')}
+    </div>
+  </div>`;
+}
+function e_topPuntaje(g){ return g.estrategias[0].puntaje; }
+
+/** Abre el modal de entrada real, con ticker y estrategia (por nombre) ya
+ *  seleccionados, buscando el id de estrategia que coincide con ese nombre. */
+function abrirModalEntradaDesdeHoy(ticker, nombreEstrategia){
+  const e = ESTRATEGIAS.find(x => x.nombre === nombreEstrategia);
+  abrirModalEntrada(e ? e.id : ESTRATEGIAS[0].id, false);
+  document.getElementById('in-ticker').value = ticker;
+}
+
+/* ======================================================================
+   ESTADO Y PERSISTENCIA (window.storage — persiste entre computadoras)
+   ====================================================================== */
+let ESTADO = { realAbiertas:[], realHistorial:[], simAbiertas:[], simHistorial:[] };
+const STORE_KEY = 'trading-tracker-v1';
+
+async function cargarEstado(){
+  try{
+    const r = await window.storage.get(STORE_KEY, false);
+    if(r && r.value){ ESTADO = JSON.parse(r.value); }
+  }catch(e){
+    console.log('Sin datos previos, arrancando en blanco.', e);
+  }
+  render();
+}
+async function guardarEstado(){
+  try{
+    await window.storage.set(STORE_KEY, JSON.stringify(ESTADO), false);
+  }catch(e){
+    mostrarToast('No se pudo guardar. Revisá la conexión.');
+    console.error(e);
+  }
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ======================================================================
+   RENDER
+   ====================================================================== */
+function scoreBarsHTML(score){
+  let h='<div class="score-bars">';
+  for(let i=1;i<=10;i++) h += `<i class="${i<=score?'on':''}"></i>`;
+  h += '</div>';
+  return h;
+}
+function tarjetaEstrategia(e){
+  return `
+  <div class="card ${e.supera?'':'dim'}">
+    <div class="card-top">
+      <div>
+        <div class="card-name">${e.nombre}</div>
+        <span class="card-tag ${e.tipo}">${e.tipo}</span>
+      </div>
+      <span class="badge ${e.supera?'si':'no'}">${e.supera?'SUPERA AL AZAR':'NO SUPERA'}</span>
+    </div>
+    <div class="score-row">${scoreBarsHTML(e.score)}<span class="score-num">${e.score}/10</span></div>
+    <div class="rule-line"><b>Entrada:</b> ${e.entrada}</div>
+    <div class="rule-line"><b>Salida:</b> ${e.salida}</div>
+    <div class="stat-line">z=${e.z.toFixed(2)} · gana al control ${e.control} · gana a comprar-y-sostener ${e.bh}</div>
+    <div class="card-actions">
+      <button class="btn primary small" onclick="abrirModalEntrada('${e.id}', false)">+ Entrada real</button>
+      <button class="btn ghost-sim small" onclick="abrirModalEntrada('${e.id}', true)">+ Simular entrada</button>
+    </div>
+  </div>`;
+}
+function renderSenales(){
+  const sup = ESTRATEGIAS.filter(e=>e.supera).sort((a,b)=>b.z-a.z);
+  const nosup = ESTRATEGIAS.filter(e=>!e.supera).sort((a,b)=>b.z-a.z);
+  document.getElementById('cards-superan').innerHTML = sup.map(tarjetaEstrategia).join('');
+  document.getElementById('cards-no-superan').innerHTML = nosup.map(tarjetaEstrategia).join('');
+  document.getElementById('n-superan').textContent = sup.length;
+  document.getElementById('n-no-superan').textContent = nosup.length;
+}
+
+function diasDesde(fechaISO){
+  const d1 = new Date(fechaISO+'T00:00:00'), d2 = new Date();
+  return Math.max(0, Math.floor((d2-d1)/86400000));
+}
+function fmtMoneda(n, moneda){
+  return (moneda==='USD'?'US$ ':'$ ') + Number(n).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function tarjetaPosicionAbierta(pos, esSim){
+  const e = ESTRATEGIAS_MAP[pos.estrategiaId];
+  const nombreEstr = e ? e.nombre : pos.estrategiaId;
+  const salidaTexto = e ? e.salida : '';
+  return `
+  <div class="pos-card ${esSim?'sim':''}" id="pos-${pos.id}">
+    <div class="pos-top">
+      <div>
+        <span class="pos-ticker">${pos.ticker}</span>
+        <div class="pos-strat">${nombreEstr}</div>
+      </div>
+      <div class="pos-days">${diasDesde(pos.fechaEntrada)} días en posición</div>
+    </div>
+    <div class="pos-grid">
+      <div class="pos-field"><label>Entrada</label><span>${pos.fechaEntrada}</span></div>
+      <div class="pos-field"><label>Monto</label><span>${fmtMoneda(pos.monto,pos.moneda)}</span></div>
+      <div class="pos-field"><label>Comisión</label><span>${fmtMoneda(pos.comision,pos.moneda)}</span></div>
+      <div class="pos-field"><label>Costo total</label><span>${fmtMoneda(Number(pos.monto)+Number(pos.comision),pos.moneda)}</span></div>
+    </div>
+    <div class="exit-rule"><b>Regla de salida:</b> ${salidaTexto}</div>
+
+    <div class="paste-box">
+      <div class="paste-hint">
+        Pegá las últimas ruedas para chequear la señal de salida. Una por línea:
+        <code style="color:var(--text-dim)">fecha,alto,bajo,cierre</code> — de la más vieja a la más nueva.
+      </div>
+      <textarea id="paste-${pos.id}" placeholder="2026-08-24,102.30,100.10,101.80&#10;2026-08-25,101.90,99.50,100.20&#10;..."></textarea>
+      <div class="card-actions">
+        <button class="btn small" onclick="verificarSalida('${pos.id}', ${esSim})">Verificar señal</button>
+        <button class="btn small danger" onclick="abrirModalSalida('${pos.id}', ${esSim})">Cerrar operación</button>
+      </div>
+      <div id="banner-${pos.id}"></div>
+    </div>
+  </div>`;
+}
+
+function tarjetaHistorial(pos, esSim){
+  const e = ESTRATEGIAS_MAP[pos.estrategiaId];
+  const nombreEstr = e ? e.nombre : pos.estrategiaId;
+  const costoEntrada = Number(pos.monto)+Number(pos.comision);
+  const netoSalida = Number(pos.montoSalida)-Number(pos.comisionSalida);
+  const resultado = netoSalida - costoEntrada;
+  const pct = costoEntrada>0 ? (resultado/costoEntrada*100) : 0;
+  const cls = resultado>=0?'pnl-pos':'pnl-neg';
+  return `<tr>
+    <td class="t-ticker">${pos.ticker}${esSim?' <span style="color:var(--gold);font-size:9px">SIM</span>':''}</td>
+    <td>${nombreEstr}</td>
+    <td>${pos.fechaEntrada}</td>
+    <td>${pos.fechaSalida}</td>
+    <td>${fmtMoneda(costoEntrada,pos.moneda)}</td>
+    <td>${fmtMoneda(netoSalida,pos.moneda)}</td>
+    <td class="${cls}">${resultado>=0?'+':''}${fmtMoneda(resultado,pos.moneda)} (${pct>=0?'+':''}${pct.toFixed(1)}%)</td>
+  </tr>`;
+}
+
+function renderListas(){
+  const listaReales = document.getElementById('list-reales-abiertas');
+  listaReales.innerHTML = ESTADO.realAbiertas.length
+    ? ESTADO.realAbiertas.map(p=>tarjetaPosicionAbierta(p,false)).join('')
+    : `<div class="empty">Todavía no registraste ninguna operación real.<br>Elegí una estrategia en la pestaña Señales para empezar.</div>`;
+
+  const listaSim = document.getElementById('list-sim-abiertas');
+  listaSim.innerHTML = ESTADO.simAbiertas.length
+    ? ESTADO.simAbiertas.map(p=>tarjetaPosicionAbierta(p,true)).join('')
+    : `<div class="empty">No hay simulaciones abiertas.<br>Elegí "Simular entrada" en cualquier estrategia de la pestaña Señales.</div>`;
+
+  const histReales = document.getElementById('list-reales-historial');
+  histReales.innerHTML = ESTADO.realHistorial.length
+    ? `<table class="hist"><thead><tr><th>Papel</th><th>Estrategia</th><th>Entrada</th><th>Salida</th><th>Costo</th><th>Neto</th><th>Resultado</th></tr></thead>
+       <tbody>${ESTADO.realHistorial.slice().reverse().map(p=>tarjetaHistorial(p,false)).join('')}</tbody></table>`
+    : `<div class="empty">Sin operaciones reales cerradas todavía.</div>`;
+
+  const histSim = document.getElementById('list-sim-historial');
+  histSim.innerHTML = ESTADO.simHistorial.length
+    ? `<table class="hist"><thead><tr><th>Papel</th><th>Estrategia</th><th>Entrada</th><th>Salida</th><th>Costo</th><th>Neto</th><th>Resultado</th></tr></thead>
+       <tbody>${ESTADO.simHistorial.slice().reverse().map(p=>tarjetaHistorial(p,true)).join('')}</tbody></table>`
+    : `<div class="empty">Sin simulaciones cerradas todavía.</div>`;
+
+  document.getElementById('cnt-reales').textContent = ESTADO.realAbiertas.length || '';
+  document.getElementById('cnt-sim').textContent = ESTADO.simAbiertas.length || '';
+}
+
+function render(){ renderSenales(); renderListas(); }
+
+/* ======================================================================
+   ACCIONES
+   ====================================================================== */
+let modalCtx = {};
+
+function abrirModalEntrada(estrategiaId, esSim){
+  const e = ESTRATEGIAS_MAP[estrategiaId];
+  modalCtx = { estrategiaId, esSim };
+  document.getElementById('modal-titulo').textContent = esSim ? 'Simular entrada' : 'Registrar entrada real';
+  document.getElementById('modal-sub').textContent = e.nombre;
+  const sel = document.getElementById('in-estrategia');
+  sel.innerHTML = ESTRATEGIAS.map(s=>`<option value="${s.id}" ${s.id===estrategiaId?'selected':''}>${s.nombre}</option>`).join('');
+  document.getElementById('in-ticker').value = '';
+  document.getElementById('in-monto').value = '';
+  document.getElementById('in-comision').value = '';
+  document.getElementById('in-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('modal-entrada').classList.add('open');
+  document.getElementById('in-ticker').focus();
+}
+async function confirmarEntrada(){
+  const ticker = document.getElementById('in-ticker').value.trim().toUpperCase();
+  const monto = document.getElementById('in-monto').value;
+  const comision = document.getElementById('in-comision').value || 0;
+  const moneda = document.getElementById('in-moneda').value;
+  const fecha = document.getElementById('in-fecha').value;
+  const estrategiaId = document.getElementById('in-estrategia').value;
+  if(!ticker || !monto || !fecha){ mostrarToast('Completá papel, monto y fecha.'); return; }
+
+  const pos = { id:uid(), ticker, estrategiaId, monto:Number(monto), comision:Number(comision), moneda, fechaEntrada:fecha };
+  if(modalCtx.esSim) ESTADO.simAbiertas.push(pos); else ESTADO.realAbiertas.push(pos);
+  await guardarEstado();
+  cerrarModal('modal-entrada');
+  render();
+  mostrarToast((modalCtx.esSim?'Simulación':'Entrada') + ' registrada: ' + ticker);
+}
+
+function abrirModalSalida(posId, esSim){
+  modalCtx = { posId, esSim };
+  const lista = esSim ? ESTADO.simAbiertas : ESTADO.realAbiertas;
+  const pos = lista.find(p=>p.id===posId);
+  document.getElementById('modal-salida-sub').textContent = pos.ticker + (esSim?' · SIMULACIÓN':'');
+  document.getElementById('out-monto').value = '';
+  document.getElementById('out-comision').value = '';
+  document.getElementById('out-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('modal-salida').classList.add('open');
+}
+async function confirmarSalida(){
+  const montoSalida = document.getElementById('out-monto').value;
+  const comisionSalida = document.getElementById('out-comision').value || 0;
+  const fechaSalida = document.getElementById('out-fecha').value;
+  if(!montoSalida || !fechaSalida){ mostrarToast('Completá monto y fecha de salida.'); return; }
+
+  const { posId, esSim } = modalCtx;
+  const abiertasKey = esSim ? 'simAbiertas' : 'realAbiertas';
+  const historialKey = esSim ? 'simHistorial' : 'realHistorial';
+  const idx = ESTADO[abiertasKey].findIndex(p=>p.id===posId);
+  if(idx===-1) return;
+  const pos = ESTADO[abiertasKey][idx];
+  pos.montoSalida = Number(montoSalida);
+  pos.comisionSalida = Number(comisionSalida);
+  pos.fechaSalida = fechaSalida;
+  ESTADO[historialKey].push(pos);
+  ESTADO[abiertasKey].splice(idx,1);
+  await guardarEstado();
+  cerrarModal('modal-salida');
+  render();
+  mostrarToast('Operación cerrada: ' + pos.ticker);
+}
+
+function verificarSalida(posId, esSim){
+  const lista = esSim ? ESTADO.simAbiertas : ESTADO.realAbiertas;
+  const pos = lista.find(p=>p.id===posId);
+  const e = ESTRATEGIAS_MAP[pos.estrategiaId];
+  const texto = document.getElementById('paste-'+posId).value;
+  const filas = parseOHLC(texto);
+  const banner = document.getElementById('banner-'+posId);
+
+  const r = evaluarSalida(e, filas, pos.fechaEntrada);
+  const prefijo = esSim ? 'SIMULACIÓN — ' : '';
+
+  if(r.tipo==='error'){
+    banner.innerHTML = `<div class="signal-banner info"><span class="icon">⚠️</span>${r.texto}</div>`;
+  } else if(r.tipo==='info'){
+    banner.innerHTML = `<div class="signal-banner info"><span class="icon">📅</span>${prefijo}${r.texto}</div>`;
+  } else if(r.tipo==='sell'){
+    banner.innerHTML = `<div class="signal-banner sell"><span class="icon">🔴</span>${prefijo}CERRAR — condición de salida cumplida. ${r.texto}</div>`;
+  } else {
+    banner.innerHTML = `<div class="signal-banner hold"><span class="icon">🟢</span>${prefijo}Mantener — condición de salida no cumplida. ${r.texto}</div>`;
+  }
+}
+
+function cerrarModal(id){ document.getElementById(id).classList.remove('open'); }
+function mostrarToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ======================================================================
+   NAV
+   ====================================================================== */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+  });
+});
+document.querySelectorAll('.sub-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const parent = btn.closest('.subtabs');
+    parent.querySelectorAll('.sub-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const container = parent.nextElementSibling.parentElement;
+    container.querySelectorAll('.sub-view').forEach(v=>v.style.display='none');
+    document.getElementById(btn.dataset.sub).style.display='block';
+  });
+});
+document.getElementById('btn-confirmar-entrada').addEventListener('click', confirmarEntrada);
+document.getElementById('btn-confirmar-salida').addEventListener('click', confirmarSalida);
+
+function actualizarReloj(){
+  const d = new Date();
+  document.getElementById('clock').textContent = d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' · ' + d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+}
+actualizarReloj();
+setInterval(actualizarReloj, 30000);
+
+cargarSenalesHoySE();
+cargarEstado();
+</script>
+</body>
+</html>
